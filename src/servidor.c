@@ -5,7 +5,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <string.h>
-#include "mensajes.h"
+#include "const.h"
+#include "common.h"
 #include "imp_clave.h"
 
 int i = 0;
@@ -21,46 +22,54 @@ void stop_server() {
     exit(0);
 }
 
-int tratar_peticion(peticion* p) {
-    peticion local_peticion;
-    respuesta r;
+int tratar_peticion(void* sc) {
+    int local_sc;
+
+    int success;
+    int op;
+    int N_i;
+    int key;
+    char value1[CHAR_SIZE];
+    int N_value2;
+    double value2[ARR_SIZE];
+
+    char buffer_local[CHAR_SIZE];
 
     pthread_mutex_lock(&mutex);
-    
     // copia de la petición 
-    local_peticion.key = p->key;
-    local_peticion.N_i = p->N_i;
-    local_peticion.op = p->op;
-    strcpy(local_peticion.q_client, p->q_client);
-    strcpy(local_peticion.value1, p->value1);
+    local_sc = *((int*)sc);
     copiado = 1;
     pthread_cond_signal(&cond);
-
-    if (p->op == 1 || p->op == 3) // sólo debemos copiar el servidor para el set o modify
-    { 
-        for (int i = 0; i < local_peticion.N_i; ++i) {
-            local_peticion.value2[i] = p->value2[i];
-        }
-    }    
-
     pthread_mutex_unlock(&mutex);
 
-    // debug
-    printf("starting %s: %d\n", local_peticion.q_client, local_peticion.op);
     //printf("petición:\n\tcliente: %s\n\top: %d\n\tvalue1:%s\n", local_peticion.q_client, local_peticion.op, local_peticion.value1);
+    readLine(local_sc, buffer_local, sizeof(char));
+    op = buffer_local[0] - '0';
 
-
-    switch (local_peticion.op) {
+    switch (op) {
     case 0: // init
-        /* printf("Init\n"); */
-        r.success = init();
+        success = init();
+        sprintf(buffer_local, "%i", success);
+        writeLine(local_sc, buffer_local);
         break;
 
     case 1: // set value
-        //sleep(10);
-        //printf("%s, Set Value\n", local_peticion.q_client);
-        
-        r.success = set_value(local_peticion.key, local_peticion.value1, local_peticion.N_i, local_peticion.value2);
+        // Leemos key
+        readLine(local_sc, buffer_local, CHAR_SIZE);
+        key = atoi(buffer_local);
+
+        // Leemos value1
+        readLine(local_sc, buffer_local, CHAR_SIZE);
+        strcpy(value1, buffer_local);
+
+        // Leemos N_i
+        readLine(local_sc, buffer_local, CHAR_SIZE);
+        N_i = atoi(buffer_local);
+
+        // Leemos value2
+        readLine(local_sc, );
+
+        success = set_value(local_peticion.key, local_peticion.value1, local_peticion.N_i, local_peticion.value2);
         break;
 
     case 2: // get value
@@ -71,7 +80,7 @@ int tratar_peticion(peticion* p) {
 
     case 3: // modify value
         /* printf("Modify Value\n"); */
-        
+
         r.success = modify_value(local_peticion.key, local_peticion.value1, local_peticion.N_i, local_peticion.value2);
         break;
 
@@ -98,21 +107,24 @@ int tratar_peticion(peticion* p) {
 int main(int argc, char* argv[]) {
 
     signal(SIGINT, stop_server);
+    int sd, sc;
+    if (argc != 2) {
+        perror("Uso: ./servidor <puerto>");
+        return -1;
+    }
 
-    struct mq_attr attr;
-    attr.mq_curmsgs = 0;
-    attr.mq_flags = 0;
-    attr.mq_maxmsg = 10;
-    attr.mq_msgsize = sizeof(peticion);
+    sd = serverSocket(INADDR_ANY, atoi(argv[1]), SOCK_STREAM);
 
-    server = mq_open("/SERVIDOR", O_CREAT | O_RDONLY, 0700, &attr);
-
-    double v[] = { -1.0, 3.14, 7.65 };
-    char s[] = "Hello world";
-
+    if (sd < 0) {
+        printf("SERVER: Error en serverSocket\n");
+        return 0;
+    }
     while (!!1) {
-        peticion p;
-        mq_receive(server, (char*)&p, sizeof(peticion), NULL);
+        sc = serverAccept(sd);
+        if (sc < 0) {
+            printf("Error en serverAccept\n");
+            continue;
+        }
         pthread_t hilo;
         pthread_attr_t attr;
         pthread_attr_init(&attr);

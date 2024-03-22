@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include "claves.h"
-#include "mensajes.h"
+#include "common.h"
 
 
 mqd_t crear_cola(char name[CHAR_SIZE]) {
@@ -12,7 +12,7 @@ mqd_t crear_cola(char name[CHAR_SIZE]) {
     strcpy(local_name, name);
     struct mq_attr attr;
     attr.mq_curmsgs = 0;
-    attr.mq_flags = 0; 
+    attr.mq_flags = 0;
     attr.mq_maxmsg = 1;
     attr.mq_msgsize = sizeof(respuesta);
     mqd_t queue = mq_open(local_name, O_CREAT | O_RDONLY, 0777, &attr);
@@ -20,17 +20,17 @@ mqd_t crear_cola(char name[CHAR_SIZE]) {
     return queue;
 }
 
-int hacer_peticion(char *queue_name, peticion *p, respuesta *r) {
+int hacer_peticion(char* queue_name, peticion* p, respuesta* r) {
     // servidor
     mqd_t server = mq_open("/SERVIDOR", O_WRONLY);
-    if ((mqd_t) -1 == server) {
+    if ((mqd_t)-1 == server) {
         perror("Error: cola servidor");
         return -1;
     }
 
     // cliente
     mqd_t yo = crear_cola(queue_name);
-    if ((mqd_t) -1 == yo) {
+    if ((mqd_t)-1 == yo) {
         perror("Error: cola propia");
         return -1;
     }
@@ -55,14 +55,14 @@ int hacer_peticion(char *queue_name, peticion *p, respuesta *r) {
 
 int init() {
     peticion p;
-    respuesta r; 
+    respuesta r;
 
     char queue_name[CHAR_SIZE];
     sprintf(queue_name, "/Client_%i", getpid());
 
-    p.op = 0; 
+    p.op = 0;
     strcpy(p.q_client, queue_name);
-    
+
     if (-1 == hacer_peticion(queue_name, &p, &r)) {
         return -1;
     }
@@ -72,15 +72,15 @@ int init() {
 
 }
 
-int set_value(int key, char *value1, int N_value2, double *V_value2) {
+int set_value(int key, char* value1, int N_value2, double* V_value2) {
     peticion p;
-    respuesta r; 
+    respuesta r;
 
     char queue_name[CHAR_SIZE];
     sprintf(queue_name, "/Client_%i", getpid());
 
     // rellenar petición
-    p.op = 1; 
+    p.op = 1;
     p.key = key;
     p.N_i = N_value2;
 
@@ -93,20 +93,20 @@ int set_value(int key, char *value1, int N_value2, double *V_value2) {
     if (-1 == hacer_peticion(queue_name, &p, &r)) {
         return -1;
     }
-   
+
     return r.success;
 
 }
 
-int get_value(int key, char *value1, int *N_value2, double *V_value2) {
+int get_value(int key, char* value1, int* N_value2, double* V_value2) {
     peticion p;
-    respuesta r; 
+    respuesta r;
 
     char queue_name[CHAR_SIZE];
     sprintf(queue_name, "/Client_%i", getpid());
 
     // rellenar petición
-    p.op = 2; 
+    p.op = 2;
     p.key = key;
 
     strcpy(p.value1, value1);
@@ -123,20 +123,20 @@ int get_value(int key, char *value1, int *N_value2, double *V_value2) {
 
     strcpy(value1, r.value1);
 
-   
+
     return r.success;
 
 }
 
-int modify_value(int key, char *value1, int N_value2, double *V_value2){
+int modify_value(int key, char* value1, int N_value2, double* V_value2) {
     peticion p;
-    respuesta r; 
+    respuesta r;
 
     char queue_name[CHAR_SIZE];
     sprintf(queue_name, "/Client_%i", getpid());
 
     // rellenar petición
-    p.op = 3; 
+    p.op = 3;
     p.key = key;
     p.N_i = N_value2;
 
@@ -149,11 +149,11 @@ int modify_value(int key, char *value1, int N_value2, double *V_value2){
     if (-1 == hacer_peticion(queue_name, &p, &r)) {
         return -1;
     }
-   
+
     return r.success;
 }
 
-int delete_key(int key){
+int delete_key(int key) {
 
     char queue_name[CHAR_SIZE];
     sprintf(queue_name, "/Client_%i", getpid());
@@ -165,7 +165,7 @@ int delete_key(int key){
     p.key = key;
     strcpy(p.q_client, queue_name);
 
-    if(-1 == hacer_peticion(queue_name, &p, &r)){
+    if (-1 == hacer_peticion(queue_name, &p, &r)) {
         perror("Error:");
         return -1;
     }
@@ -173,7 +173,7 @@ int delete_key(int key){
     return r.success;
 }
 
-int exist(int key){
+int exist(int key) {
     char queue_name[CHAR_SIZE];
     sprintf(queue_name, "/Client_%i", getpid());
 
@@ -184,7 +184,7 @@ int exist(int key){
     p.key = key;
     strcpy(p.q_client, queue_name);
 
-    if(-1 == hacer_peticion(queue_name, &p, &r)){
+    if (-1 == hacer_peticion(queue_name, &p, &r)) {
         return -1;
     }
 

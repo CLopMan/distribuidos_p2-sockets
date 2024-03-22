@@ -4,10 +4,13 @@ FLAGS=-g -Wall -lrt
 LIB=-L. -Wl,-rpath=.
 SRC=src/
 EXTRA_CLIENTS=gcc $(FLAGS) $(LIB) -o clientes $(SRC)cliente_set.c libclaves.so gcc $(FLAGS) $(LIB) -o clienteg $(SRC)cliente_get.c libclaves.so
+PORT=4500
+IP=localhost
 
 .PHONY: all clean DonLimpio testing
 
 all: $(OBJ)
+	@export IP_TUPLAS=$(IP) PORT_TUPLAS=$(PORT)
 	@echo -e "\n\0033[;33m\033[1mCOMPILING: GENERATING 2 FILES...\033[0m\n"
 	gcc $(FLAGS) $(LIB) -o cliente cliente.o libclaves.so
 	gcc $(FLAGS) -o servidor servidor.o imp_clave.o

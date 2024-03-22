@@ -1,0 +1,187 @@
+\documentclass[]{article}
+\usepackage{graphicx}
+\usepackage[a4paper, top=2cm, bottom=2cm, left=3cm, right=3cm]{geometry}
+\usepackage[hidelinks]{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+
+
+\lstset{
+  language=C,
+  basicstyle=\ttfamily\small,
+  commentstyle=\color{gray},
+  keywordstyle=\color{blue},
+  stringstyle=\color{green},
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  showspaces=false,
+  showstringspaces=false,
+  tabsize=2,
+  breaklines=true, captionpos=false,
+}
+
+%title
+\title{Practica 1} 
+
+\author{Adrián Ferández Galán y César López Mantecón}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+   \includegraphics[width=0.9\textwidth]{uc3m.jpg} 
+    {\Huge Universidad Carlos III\\
+    
+     \Large Sistemas Distribuídos\\
+     \vspace{0.5cm}
+     Curso 2023-24}
+    \vspace{2cm}
+
+    {\Huge \textbf{Práctica 1} \par}
+    \vspace{0.5cm}
+    {\Large Colas de mensajes POSIX \par}
+    \vspace{8cm}
+
+   \textbf{Ingeniería Informática, Tercer curso}\\
+    \vspace{0.2cm} 
+    Adrián Fernández Galán (NIA: 100472182, e-mail: 100472182@alumnos.uc3m.es) \\
+    César López Mantecón   (NIA: 100472092, e-mail: 100472092@alumnos.uc3m.es)
+    \vspace{0.5cm}
+
+   
+    \textbf{Prof .} Félix García Caballeira\\
+    \textbf{Grupo: } 81   
+    
+\end{titlepage}
+\newpage
+
+\renewcommand{\contentsname}{\centering Índice}
+\tableofcontents
+
+\newpage
+
+\section{Introducción}
+\label{sec:introduccion}
+El desarrollo de este proyecto consiste en implementar una aplicación cliente-servidor, donde los diferentes clientes podrán guardar información en tuplas a través del servidor, de forma transparente.
+Para que esto pueda darse se pide que la comunicación entre los clientes y el servidor se de a través de colas POSIX.
+Es importante destacar que las peticiones se tratarán de forma concurrente, utilizando procesos ligeros.
+\section{Diseño}
+\label{sec:disenno}
+La aplicación constará de dos partes diferenciadas: los clientes y el servidor.
+
+\subsection{Cliente y Biblioteca dinámica}
+\label{subsec:cliente_biblioteca}
+El cliente estará formado por dos partes, la comunicación y las llamadas a los servicios de la aplicación. La primera se corresponde con el fichero \textit{src/claves.c}. Este ofrecerá la interfaz para los servicios especificados en el enunciado y se compilará como una biblioteca dinámica (\textit{libclaves.so}) de modo que el mecanismo de comunicación pueda variar sin afectar a los ejecutables del cliente. La segunda, se corresponde con el fichero \textit{src/cliente.c}, esta sólo contendrá llamadas a las funcines ofrecidas por la API de la aplicación distribuída.  
+
+De esta forma, logramos una aplicación distribuída en la que la ejecución de los servicios en el servidor sea transparente al usuario. Además, la comunicación será independiente de la implementación del cliente, de forma que se podrá actualizar siempre que se respete la misma interfaz sin necesidad de recompilar el ejecutable de un cliente.
+
+Para compilar el archivo \textit{claves.c} se ha empleado el siguiente comando en un archivo \textit{Makefile}.
+
+\begin{center}
+\begin{lstlisting}[caption=Compiación de biblioteca dinámica]
+gcc -c -fPIC -shared -o lib.so claves.c
+\end{lstlisting}
+\end{center}
+
+En esta implementación cada cliente creará una peticición que corresponda con la funcionalidad invocada, creará una cola POSIX, donde se recibirá la respuesta, y abrirá la cola POSIX del servidor, donde volcará su petición.
+
+\subsection{Servidor}
+\label{subsec:servidor}
+En el servidor se encuentran las funcionalidades que se encargan de la comunicación con el cliente, en el fichero \textit{src/servidor.c}, y la implementación de los servicios para las tuplas, en el fichero \textit{src/imp\_clave.c}.
+
+\subsubsection{Estructura del Servidor}
+\label{subsec::estructura_servidor}
+En cuanto a la parte de comunicación con el cliente, el servidor abre su cola POSIX y espera de forma indefinida a que los clientes realicen sus peticiones. En el momento en el que llega una petición el servidor lanzará un hilo que la procesará, enviando al cliente la respuesta con los datos oportunos.
+
+Para la implenetación de las distintas funcionalidades se ha optado por guardar las tuplas en ficheros, lo que nos permite acceder a las tuplas en distintas sesiones, ya que se guardan en la memoria permanente.
+Para poder crear y destruir simplemente creamos los ficheros y los borramos, y para leer y escribir abrimos el fichero y volcamos los datos en binario.
+
+\subsubsection{Implementación en el servidor}
+\label{subsec::implementacion_servidor}
+Como hemos mencionado las tuplas se almacenan en ficheros, por lo que la implementación se basará en las interfaces que C nos proporciona para gestionar ficheros.
+A continuación profundizamos en cómo hemos usado estas interfaces durante la implementación de cada una de las funciones:
+
+\begin{itemize}
+  \item \texttt{init()}: Para la función \textit{init} creamos el directorio \textit{tuple}, en el que se encontrarán todas las tuplas, en caso de que no exista y en el caso de que exista se borrarán todos los archivos. 
+  \item \texttt{set\_value()}: Para la función \textit{set\_value} escribimos en este orden la clave, el string, el tamaño del array y el array de doubles siempre y cuando no exista la tupla que corresponda con la clave proporcionada, a traveś de \textit{fwrite}.
+  \item \texttt{modify\_value()}: Para la función \textit{modify\_value} escribimos en el mismo orden que para \textit{set\_value} pero siempre y cuando exista la tupla que corresponde con la clave proporcionada, a traveś de \textit{fwrite}.
+  \item \texttt{get\_value()}: La función \textit{get\_value} realiza la lectura de la misma manera que ocurre en el \textit{modify\_value} pero en vez de utilizar \textit{fwrite} utilizamos \textit{fread} para leer todo el fichero.
+  \item \texttt{delete\_key()}: La función \textit{delete\_key} realiza un \textit{unlink} del fichero que corresponde con la clave proporcionada.
+  \item \texttt{exist()}: La función \textit{exist} trata de abrir un archivo con permisos de lectura y si consigue hacerlo devuelve un 1, en caso contrario devuelve un 0.
+\end{itemize}
+
+
+\subsubsection{Concurrencia del Servidor}
+\label{subsec::concurrencia_servidor}
+Para la concurrencia del servidor se utilizan hilos por petición, lo que significa que existe un hilo principal que acepta las peticiones y crea hilos para gestionar estas peticiones.
+Tras crear un hilo principal se duerme hasta que el hilo creado tome el mutex y copie los valores de la petición recibida.
+
+Existirán secciones críticas al acceder a los ficheros, pero no se van a dar condiciones de carrera debido a que las escrituras son más pequeñas que el buffer de escritura de los ficheros. Además, el sistema operativo se encargará de gestionar a los hilos para que no haya entrelazamiento de escrituras simultáneas dado que los ficheros son más pequeños que una página.
+\subsection{Mensajes}
+\label{subsec:mensajes}
+Para el proceso de comunicación necesitamos realizar un paso de mensajes, que se vuelquen en las correspondientes colas POSIX. Para almacenar distintos valores los mensajes utilizan arrays evitando usar punteros debido a que los mensajes viajarán entre procesos y por lo tanto no pueden referirse a la memoria de un proceso en concreto.
+Para ello se han construido 2 estructuras: la petición y la respuesta.
+
+\subsubsection{Petición}
+\label{subsec::peticion}
+Para construir la peticición nos hemos basado en los argumentos de entrada que tenían todos los prototipos de las funciones. A continuación nos pararemos en cada uno de los atributos de la estructura.
+
+\begin{itemize}
+  \item \textit{q\_client}: Este atributo es necesario para identificar el nombre de la cola del cliente, que ha realizado la petición, con el objetivo de que el servidor pueda devolver una respuesta al cliente.
+  \item \textit{key}: El valor que corresponde a este atributo se utiliza en las funciones para identificar la tupla de forma unívoca.
+  \item \textit{op}: El valor que se coloca en este atributo corresponde al tipo de función con la que se debe de trabajar.
+  \item \textit{value1}: El valor que se almacena en este atributo es la cadena que se almacena en la tupla.
+  \item \textit{N\_i}: Esta variable de tipo entero se utiliza como longitud para escribir el array de doubles o como índice para leer este array.
+ \item \textit{V\_value2}: Esta variable almacena el array de doubles que corresponde con el valor que se almacena en las tuplas.
+\end{itemize}
+
+\subsubsection{Respuesta}
+\label{subsec::respuesta}
+Para construir la respuesta nos hemos basado en los valores que devuelven las funciones. A continuación profundizaremos en cada atributo de la respuesta.
+
+\begin{itemize}
+  \item \textit{success}: El valor que contendrá este atributo será un 0 en caso de que la función se haya completado con éxito o un -1 en caso de error.
+  \item \textit{value1}: Este atributo se usará para la función \textit{get\_value} con el objetivo de devolver el string de la tupla consultada.
+  \item \textit{value2}: Este atributo se usará para devolver el array de doubles de la tupla consultada a través de la función \textit{get\_value}.
+  \item \textit{n}: Este atributo contendrá el tamaño del array de doubles de la tupla consultada cuando se llama a la función \textit{get\_value}.
+\end{itemize}
+
+\subsection{Uso de ficheros}
+\label{subsec:uso_de_ficheros}
+Para almacenar las tuplas se han utilizado ficheros. Hemos decidido que estos ficheros son binarios para definir su estructura y adaptarla a la perfección al servicio.
+Dado el carácter de los ficheros, nos permite mantener el contenido de las tuplas entre distintas ejecuciones del servidor. 
+
+La estructura de los ficheros será la siguiente: 256 bytes reservados para texto, un número entero \textit{N} de 4 bytes que se corresponderá con el número de elementos que vendrán a continuación, y \textit{N} números en coma flotante de doble precisión. 
+
+
+\section{Descripción de pruebas}
+\label{sec:descripcion_de_pruebas}
+Hemos realizado dos clases de pruebas para evaluar el correcto funcionamiento de nuestra aplicación. Existen tres puntos críticos en el sistema: la \textbf{comunicación} entre el proceso cliente y el servidor, la \textbf{implementación} de lo servicios sobre las tuplas y la \textbf{concurrencia} en el lado del servidor.  
+
+Estas pruebas se recojen en 2 ficheros y un \textit{script} en \textit{bash} contenidos en el directorio tests: tests\_concurrency.c, tests\_imp.c y tests\_imp.sh. Han sido preparados para su fácil ejecución a partir del siguiente comando. 
+
+\begin{lstlisting}[caption=Compiación y ejecución de tests]
+make testing
+\end{lstlisting}
+
+Las pruebas de implementación siguen una aproximación sencilla. Ejecutamos las funciones para unos casos del que conocemos el resultado final y compararemos el resultado esperado con el obtenido. Las pruebas de concurrencia y comunicación se realizan en conjunto.
+
+Para las pruebas de comunicación simplemente comprobaremos que uno o varios clientes son capaces de enviar y recibir mensajes de un servidor. Para las de concurrencia se han realizado los siguientes tests: 
+
+\begin{itemize}
+    \item Dos escritores: comprobar el acceso concurrente de dos clientes a un mismo fichero donde prevalece la última escritura. 
+    \item Dos escritores creando el mismo archivo: comprobar que, al intentar crear dos veces el mismo archivo por dos clientes concurrente, uno de ellos recibe un error. 
+    \item Escritor-lector: comprobar el acceso concurrente de un escritor y un lector en ambos órdenes posibles. El lector debe acceder a los valores previos a la escritura o posterior a la escritura sin darse condiciones de carrera. 
+    \item Varios escritores: comprobar el acceso concurrente de 5 escritores donde debe prevalecer la última escritura. 
+    \item Varios escritores y lectores: comprobar el acceso concurrente de 3 escritores y dos lectores a un mismo archivo. 
+\end{itemize}
+
+Estos test imprimen por la salida estándar los datos necesarios para validar la existencia de concurrencia y la asuencia de condiciones de carrera. Además, en algunas de ellas se generan archivos de texto que nos permiten comprobar los valores almacenados en los ficheros en puntos de la ejecución. 
+
+Los ficheros de tuplas generados en estos tests cuentan con una esctructura concreta que depende del pid del proceso que lo modifica, de forma que seamos capaces de evaluar los conceptos descritos anteriormente. Todas las pruebas han resultado exitosas. 
+
+\section{Conclusiones}
+\label{sec:conclusiones}
+Esta práctica ha sido nuestra primera aproximación al desarrollo de aplicaciones distribuídas. Nos ha permitido profundizar en los conceptos introducidos en la asignatura de Sistemas distribuídos, a la par que descubrir el funcionamiento de las bibliotecas dinámicas y su utilidad en esta clase de sistemas.
+
+\end{document}

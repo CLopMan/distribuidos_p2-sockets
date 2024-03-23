@@ -88,7 +88,7 @@ En el servidor se encuentran las funcionalidades que se encargan de la comunicac
 
 \subsubsection{Estructura del Servidor}
 \label{subsec::estructura_servidor}
-El servidor debe realizar dos acciones principales: aceptar la comunicación con un cliente y lanzar un hilo para gestionar dicha petición. Para la primera acción, el servidor debe estar alojado en un puerto que recibirá como argumento de programa. En dicho puerto esperará hasta recibir una petición de conexión con algún cliente. Para la segunda acción, usamos la interfaz ofrecida por \textit{pthread.h} para lanzar un hilo indpendiente que tratará la petición y comunicará al cliente la respuesta. 
+El servidor debe realizar dos acciones principales: aceptar la comunicación con un cliente y lanzar un hilo para gestionar dicha petición. Para la primera acción, el servidor debe estar alojado en un puerto que recibirá como argumento de programa. En dicho puerto esperará hasta recibir una petición de conexión con algún cliente. Para la segunda acción, usamos la interfaz ofrecida por \textit{pthread.h} para lanzar un hilo independientemente que tratará la petición y comunicará al cliente la respuesta. 
 
 \subsubsection{Implementación en el servidor}
 \label{subsec::implementacion_servidor}

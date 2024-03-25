@@ -9,16 +9,16 @@
 #include "common.h"
 #include "imp_clave.h"
 
-int i = 0;
+/* int i = 0; */
 pthread_mutex_t mutex;
 pthread_cond_t cond;
 int copiado = 0;
-mqd_t server;
+int sd = -1000;
 void stop_server() {
     pthread_mutex_destroy(&mutex);
     printf("Cerrando servidor...\n");
-    mq_close(server);
-    mq_unlink("/SERVIDOR");
+    if (sd != -1000)
+        close(sd);
     exit(0);
 }
 
@@ -42,7 +42,6 @@ int tratar_peticion(void* sc) {
     pthread_cond_signal(&cond);
     pthread_mutex_unlock(&mutex);
 
-    //printf("petición:\n\tcliente: %s\n\top: %d\n\tvalue1:%s\n", local_peticion.q_client, local_peticion.op, local_peticion.value1);
     readLine(local_sc, buffer_local, sizeof(char));
     op = buffer_local[0] - '0';
 
@@ -67,40 +66,99 @@ int tratar_peticion(void* sc) {
         N_i = atoi(buffer_local);
 
         // Leemos value2
-        readLine(local_sc, );
+        for (int i = 0; i < N_i; i++) {
+            readLine(local_sc, buffer_local, CHAR_SIZE);
+            value2[i] = atof(buffer_local);
+        }
 
-        success = set_value(local_peticion.key, local_peticion.value1, local_peticion.N_i, local_peticion.value2);
+        // Obtenemos el resultado de la operación y escribimos al cliente el resultado
+        success = set_value(key, value1, N_i, value2);
+        sprintf(buffer_local, "%i", success);
+        writeLine(local_sc, buffer_local);
         break;
 
     case 2: // get value
-        //sleep(5);
-        //printf("%s, Get Value\n", local_peticion.q_client);
-        r.success = get_value(local_peticion.key, r.value1, &r.N, r.value2);
+
+        readLine(local_sc, buffer_local, CHAR_SIZE);
+        key = atoi(buffer_local);
+
+        success = get_value(key, value1, &N_i, value2);
+
+        // Escribimos value 1
+        strcpy(buffer_local, value1); // No es necesario, se puede escribir value1 directamente
+        writeLine(local_sc, buffer_local);
+
+        // Escribimos N_value 2
+        sprintf(buffer_local, "%i", N_i);
+        writeLine(local_sc, buffer_local);
+
+        // Escribimos value2
+        for (int i = 0; i < N_i; i++) {
+            sprintf(buffer_local, "%lf", value2[i]);
+            writeLine(local_sc, buffer_local);
+        }
+
+        // Escribimos el resultado de la operación
+        sprintf(buffer_local, "%i", success);
+        writeLine(local_sc, buffer_local);
+
         break;
 
     case 3: // modify value
-        /* printf("Modify Value\n"); */
+        // Leemos key
+        readLine(local_sc, buffer_local, CHAR_SIZE);
+        key = atoi(buffer_local);
 
-        r.success = modify_value(local_peticion.key, local_peticion.value1, local_peticion.N_i, local_peticion.value2);
+        // Leemos value1
+        readLine(local_sc, buffer_local, CHAR_SIZE);
+        strcpy(value1, buffer_local);
+
+        // Leemos N_i
+        readLine(local_sc, buffer_local, CHAR_SIZE);
+        N_i = atoi(buffer_local);
+
+        // Leemos value2
+        for (int i = 0; i < N_i; i++) {
+            readLine(local_sc, buffer_local, CHAR_SIZE);
+            value2[i] = atof(buffer_local);
+        }
+
+        // Obtenemos el resultado de la operación y escribimos al cliente el resultado
+        success = modify_value(key, value1, N_i, value2);
+        sprintf(buffer_local, "%i", success);
+        writeLine(local_sc, buffer_local);
         break;
 
     case 4: // delete key
-        /* printf("Delete Key\n"); */
-        r.success = delete_key(local_peticion.key);
+
+        // Leemos la key
+        readLine(local_sc, buffer_local, CHAR_SIZE);
+        key = atoi(buffer_local);
+
+        // Escribimos el resultado de la operación
+        success = delete_key(key);
+        sprintf(buffer_local, "%i", success);
+        writeLine(local_sc, buffer_local);
         break;
 
     case 5: // exists
-        /* printf("Exists\n"); */
-        r.success = exist(local_peticion.key);
+
+        // Leemos la key
+        readLine(local_sc, buffer_local, CHAR_SIZE);
+        key = atoi(buffer_local);
+
+        // Escribimos el resultado de la operación
+        success = exist(key);
+        sprintf(buffer_local, "%i", success);
+        writeLine(local_sc, buffer_local);
         break;
 
     default:
-        fprintf(stderr, "Not recognised operation: expected [0, 5] but %d was received\n", local_peticion.op);
+        fprintf(stderr, "Not recognised operation: expected [0, 5] but %d was received\n", op);
         break;
     }
-    mqd_t client = mq_open(local_peticion.q_client, O_WRONLY);
-    mq_send(client, (char*)&r, sizeof(respuesta), 0);
-    printf("finish: %s\n", local_peticion.q_client);
+
+    printf("finish: %s\n", local_sc);
     pthread_exit(NULL);
 }
 
@@ -129,7 +187,7 @@ int main(int argc, char* argv[]) {
         pthread_attr_t attr;
         pthread_attr_init(&attr);
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-        pthread_create(&hilo, &attr, (void*)tratar_peticion, (void*)&p);
+        pthread_create(&hilo, &attr, (void*)tratar_peticion, (void*)&sc);
         pthread_mutex_lock(&mutex);
         while (!copiado) {
             pthread_cond_wait(&cond, &mutex);

@@ -31,7 +31,8 @@ imp_clave.o: $(SRC)imp_clave.c
 
 libclaves.so: $(SRC)claves.c
 	@echo "compiling tuple..."
-	gcc -c -fPIC -shared -o libclaves.so $<
+	gcc -c -fPIC $<
+	gcc -shared -o libclaves.so claves.o
 
 testing: imp_clave.o tests/tests_imp.c tests/custom_client.c libclaves.so tests/traductor.c
 	gcc -o tests_imp tests/tests_imp.c imp_clave.o

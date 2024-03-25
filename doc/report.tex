@@ -74,13 +74,6 @@ La aplicación constará de dos partes diferenciadas: los clientes y el servidor
 \label{subsec:cliente_biblioteca}
 Siguiendo la misma aproximación que en el ejercicio anterior, el cliente no ha necesitado de cambios ya que la única parte afectada por los requisitos de este ejercicio es la comunicación. La comunicación entre el cliente y el servidor está completamente encapsulada en la biblioteca dinámica \textit{libclaves.so}. Por esto, el único archivo modificado será \textit{src/claves.c}, que sirve como código fuente de la bibliteca dinámica.
 
-Para compilar el archivo \textit{claves.c} se ha empleado el siguiente comando en un archivo \textit{Makefile}.
-
-\begin{center}
-\begin{lstlisting}[caption=Compiación de biblioteca dinámica]
-gcc -c -fPIC -shared -o lib.so claves.c
-\end{lstlisting}
-\end{center}
 
 \subsection{Servidor}
 \label{subsec:servidor}
@@ -107,21 +100,54 @@ Cada uno de los hilos creados por \textit{main} ejecutará la función \texttt{t
 
 \subsection{Comunicación}
 \label{subsec:comunicacion}
-La comunicación, tal y como especificamos anteriormente, se realiza a través de Sockets. Este mecanismo permite comunicar dos procesos cualesquiera en la misma red, indpendientemente de la arquitectura de la máquina que los ejecuta o el lenguaje de programación en el que esté escrita la aplicaicón. Es por esto que es importante que la información transmitida por las partes cliente y servidor de nuestro sistema sea también independiente de estos menesteres. 
+La comunicación, tal y como especificamos anteriormente, se realiza a través de Sockets. Este mecanismo permite comunicar dos procesos cualesquiera en la misma red, independientemente de la arquitectura de la máquina que los ejecuta o el lenguaje de programación en el que esté escrita la aplicaicón. Es por esto que es importante que la información transmitida por las partes cliente y servidor de nuestro sistema sea también independiente de estos menesteres. 
 
 \subsubsection{Uso de cadenas de texto}
 \label{subsec:cadenas-texto}
-Para hacer los mensajes indpendientes del lenguaje de programación o arquitectura de la máquina, transmitiremos los números enteros como cadenas de texto. Además, los mensajes serán transmitidos byte a byte para evitar la problemática presentada por la diferencia entre  arquitecturas \textit{little-endian} y \textit{big-endian}.
-
-\subsubsection{Uso de doubles}
-\label{subsec:double}
-Para transmitir los vectores de números en coma flotante de doble precisión, podemos transmitir la información tal y cómo está almacenada en memoria. Esto es porque su representación y uso queda recodigo en el estándar \textbf{IEEE 754} y, por tanto, son independientes de la arquitectura o lenguaje de programación.
+Para hacer los mensajes independientes del lenguaje de programación o arquitectura de la máquina, transmitiremos la información como cadenas de texto. Además, los mensajes serán transmitidos byte a byte para evitar la problemática presentada por la diferencia entre  arquitecturas \textit{little-endian} y \textit{big-endian}.
 
 \subsubsection{Funciones auxiliares para la comunicación}
 \label{subsec:funciones}
 Para facilitar la implementación de la comunicación mediante Sockets se han implementado una serie de funciones auxiliares recogidas en el fichero \textit{src/common.c}. Estas implementan acciones repetidas tanto en el lado cliente y servidor, así como gestión de errores y envío y recepción de mensajes adaptados a las necesidades del sistema. 
 
 [[poner aquí cada función y lo que hace]]
+
+\section{Compilación}
+\label{sec:compilacion}
+En esta sección se describe la forma de compilar el proyecto para generar dos ejecutables cliente y servidor. Todos los comandos que se exponen a continuación quedan recogidos en un archivo \texit{Makefile} encargado de generar ambos ejecutables. 
+
+\subsection{Biblioteca Dinámica}
+\label{subsec:biblioteca}
+Tal y cómo hemos descrito anteriormente, el código fuente de la biblioteca dinámica está contenido en el archivo \textit{claves.c}. Para compilarlo como una biblioteca dinámica se han empleado los siguientes comandos.
+
+\begin{center}
+\begin{lstlisting}[caption=Compiación de biblioteca dinámica]
+# código objeto
+gcc -c -fPIC claves.c
+# biblioteca dinámica
+gcc -shared -o libclaves.so claves.o
+\end{lstlisting}
+\end{center}
+
+Con estos comandos generamos un archivo de código  para enlazar con otro ejecutable. Este código será independiente de la posición. 
+
+\subsection{Cliente}
+\label{subsec:cliente}
+El código fuente del cliente está contenido en el archivo \textit{cliente.c}. Este se compila enlazándolo con la biblioteca dinámica a través de los siguientes comandos: 
+
+\begin{center}
+\begin{lstlisting}[caption=Compiación de biblioteca dinámica]
+# generacion del objeto
+gcc -c cliente.c
+
+# generar ejecutable con biblioteca dinámica
+gcc -L. -Wl,-rpath=. -lclaves -o cliente cliente.o
+\end{lstlisting}
+\end{center}
+
+\subsection{Servidor}
+\label{subsec:servidor}
+
 
 \section{Descripción de pruebas}
 \label{sec:descripcion_de_pruebas}
@@ -135,6 +161,6 @@ Este ejercicio ha servido como introducción al desarrollo de aplicaciones distr
 
 El uso de Sockets, junto con una correcta codificación de la información por parte del programador, es una herramienta muy potente para el desarrollo de sistemas distribuídos. Esto es porque ya no estamos limitados a una única arquitectura o sistema operativo, sino que nos permiten ejecutar y comunicar procesos en distintos ordenadores con especificaciones variadas. 
 
-Además, el desarrollo de esta práctica no solo nos ha permitido consolidar los conocimientos adquiridos en la asignatura de Sistemas Distribuídos; sino que también nos incentivado a rescatar conceptos presentados en la asignatura de Redes de Ordenadores. Es importante, a la par que satisfactorio, ver como los conocimientos adquiridos en asignaturas previas nos sirven de base para nuestro desarrollo como informáticos según avanzamos en nuestro aprendizaje. 
+Además, el desarrollo de esta práctica no solo nos ha permitido consolidar los conocimientos adquiridos en la asignatura de Sistemas Distribuídos; sino que también nos ha incentivado a rescatar conceptos presentados en la asignatura de Redes de Ordenadores. Es importante, a la par que satisfactorio, ver como los conocimientos adquiridos en asignaturas previas nos sirven de base para nuestro desarrollo como informáticos según avanzamos en nuestro aprendizaje. 
 
 \end{document}

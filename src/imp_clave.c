@@ -80,6 +80,7 @@ int set_value(int key, char* value1, int N_value2, double* V_value2) {
     /*validaciones*/
     if (N_value2 > 32 || N_value2 < 1) {
         perror("ERROR: N_value 2 out of range");
+        return -1;
     }
 
     return write_file(key, value1, N_value2, V_value2, "wx\0");

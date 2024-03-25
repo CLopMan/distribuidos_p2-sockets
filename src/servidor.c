@@ -41,12 +41,14 @@ int tratar_peticion(void* sc) {
     copiado = 1;
     pthread_cond_signal(&cond);
     pthread_mutex_unlock(&mutex);
-
-    readLine(local_sc, buffer_local, sizeof(char));
+    printf("tratando peticion...\n");
+    readLine(local_sc, buffer_local, sizeof(char) + 1);
     op = buffer_local[0] - '0';
+    printf(">>> op: %i\n", op);
 
     switch (op) {
     case 0: // init
+        printf("init:\n");
         success = init();
         sprintf(buffer_local, "%i", success);
         writeLine(local_sc, buffer_local);
@@ -157,8 +159,8 @@ int tratar_peticion(void* sc) {
         fprintf(stderr, "Not recognised operation: expected [0, 5] but %d was received\n", op);
         break;
     }
-
-    printf("finish: %s\n", local_sc);
+    close(local_sc);
+    printf("finish: %i\n", local_sc);
     pthread_exit(NULL);
 }
 

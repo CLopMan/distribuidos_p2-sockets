@@ -2,11 +2,13 @@
 #include <mqueue.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
+#include "const.h"
 #include "claves.h"
 #include "common.h"
 
 
-mqd_t crear_cola(char name[CHAR_SIZE]) {
+/*mqd_t crear_cola(char name[CHAR_SIZE]) {
     //printf("%s\n", name);
     char local_name[CHAR_SIZE];
     strcpy(local_name, name);
@@ -18,9 +20,9 @@ mqd_t crear_cola(char name[CHAR_SIZE]) {
     mqd_t queue = mq_open(local_name, O_CREAT | O_RDONLY, 0777, &attr);
 
     return queue;
-}
+}*/
 
-int hacer_peticion(char* queue_name, peticion* p, respuesta* r) {
+/*int hacer_peticion(char* queue_name, peticion* p, respuesta* r) {
     // servidor
     mqd_t server = mq_open("/SERVIDOR", O_WRONLY);
     if ((mqd_t)-1 == server) {
@@ -51,55 +53,74 @@ int hacer_peticion(char* queue_name, peticion* p, respuesta* r) {
     mq_close(yo);
     mq_unlink(queue_name);
     return 0;
-}
+}*/
 
-int init() {
-    peticion p;
-    respuesta r;
-
-    char queue_name[CHAR_SIZE];
-    sprintf(queue_name, "/Client_%i", getpid());
-
-    p.op = 0;
-    strcpy(p.q_client, queue_name);
-
-    if (-1 == hacer_peticion(queue_name, &p, &r)) {
+int get_client_socket() {
+    char *ip;
+    char *str_port;
+    ip = getenv("IP_TUPLAS");
+    if (ip == NULL) {
+        perror("NOT setted ip");
         return -1;
     }
 
-    return r.success;
+    str_port = getenv("PORT_TUPLAS");
+    if (str_port == NULL) {
+        perror("NOT setted port");
+        return -1;
+    }
+    int port = atoi(str_port);
+    int sd = clientSocket(ip, port);
+    return sd;
+}
+
+
+int init() {
+    int sd = get_client_socket();
+    if (-1 == sd) return -1;
+
+    char op[] = "0";
+    sendMessage(sd, op, 2);
+    char success[32];
+    readLine(sd, success, 32);
+
+    //int sd = clientSocket(ip, );
+    return atoi(success);
 
 
 }
 
 int set_value(int key, char* value1, int N_value2, double* V_value2) {
-    peticion p;
-    respuesta r;
+    int sd = get_client_socket();
+    if(-1 == sd) return -1;
 
-    char queue_name[CHAR_SIZE];
-    sprintf(queue_name, "/Client_%i", getpid());
+    char op[] = "1";
+    sendMessage(sd, op, 2);
 
-    // rellenar petición
-    p.op = 1;
-    p.key = key;
-    p.N_i = N_value2;
+    char strint[CHAR_SIZE];
+    sprintf(strint, "%i", key);
+    writeLine(sd, strint);
+
+    writeLine(sd, value1);
+
+    sprintf(strint, "%i", N_value2);
+    writeLine(sd, strint);
 
     for (int i = 0; i < N_value2; ++i) {
-        p.value2[i] = V_value2[i];
-    }
-    strcpy(p.value1, value1);
-    strcpy(p.q_client, queue_name);
-
-    if (-1 == hacer_peticion(queue_name, &p, &r)) {
-        return -1;
+        sprintf(strint, "%lf", V_value2[i]);
+        writeLine(sd, strint);
     }
 
-    return r.success;
+    char success[32];
+    readLine(sd, success, 32);
+
+    return atoi(success);
 
 }
 
 int get_value(int key, char* value1, int* N_value2, double* V_value2) {
-    peticion p;
+    return 1;
+    /*peticion p;
     respuesta r;
 
     char queue_name[CHAR_SIZE];
@@ -124,37 +145,40 @@ int get_value(int key, char* value1, int* N_value2, double* V_value2) {
     strcpy(value1, r.value1);
 
 
-    return r.success;
+    return r.success;*/
 
 }
 
 int modify_value(int key, char* value1, int N_value2, double* V_value2) {
-    peticion p;
-    respuesta r;
+    int sd = get_client_socket();
+    if(-1 == sd) return -1;
 
-    char queue_name[CHAR_SIZE];
-    sprintf(queue_name, "/Client_%i", getpid());
+    char op[] = "3";
+    sendMessage(sd, op, 2);
 
-    // rellenar petición
-    p.op = 3;
-    p.key = key;
-    p.N_i = N_value2;
+    char strint[CHAR_SIZE];
+    sprintf(strint, "%i", key);
+    writeLine(sd, strint);
+
+    writeLine(sd, value1);
+
+    sprintf(strint, "%i", N_value2);
+    writeLine(sd, strint);
 
     for (int i = 0; i < N_value2; ++i) {
-        p.value2[i] = V_value2[i];
-    }
-    strcpy(p.value1, value1);
-    strcpy(p.q_client, queue_name);
-
-    if (-1 == hacer_peticion(queue_name, &p, &r)) {
-        return -1;
+        sprintf(strint, "%lf", V_value2[i]);
+        writeLine(sd, strint);
     }
 
-    return r.success;
+    char success[32];
+    readLine(sd, success, 32);
+
+    return atoi(success);
 }
 
 int delete_key(int key) {
-
+    return 1;
+    /*
     char queue_name[CHAR_SIZE];
     sprintf(queue_name, "/Client_%i", getpid());
 
@@ -170,11 +194,12 @@ int delete_key(int key) {
         return -1;
     }
 
-    return r.success;
+    return r.success;*/
 }
 
 int exist(int key) {
-    char queue_name[CHAR_SIZE];
+    return 1;
+    /*char queue_name[CHAR_SIZE];
     sprintf(queue_name, "/Client_%i", getpid());
 
     peticion p;
@@ -188,6 +213,6 @@ int exist(int key) {
         return -1;
     }
 
-    return r.success;
+    return r.success;*/
 
 }

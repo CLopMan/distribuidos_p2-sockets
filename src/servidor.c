@@ -87,9 +87,8 @@ int tratar_peticion(void* sc) {
         success = get_value(key, value1, &N_i, value2);
 
         // Escribimos value 1
-        strcpy(buffer_local, value1); // No es necesario, se puede escribir value1 directamente
+        strcpy(buffer_local, value1);
         writeLine(local_sc, buffer_local);
-
         // Escribimos N_value 2
         sprintf(buffer_local, "%i", N_i);
         writeLine(local_sc, buffer_local);

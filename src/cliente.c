@@ -36,7 +36,6 @@ int main(int argc, char* argv[]) {
     sleep(1);
     
     modify_value(3, hello, 5, vec5);
-    printf("hey \n");
     get_value(3, texto, &rn, rvec);
     printf("first_modify:\n\ttexto: %s\n\tN: %d\n\tdoubles:", texto, rn);
     for (int i = 0; i < rn; ++i) {
@@ -48,5 +47,6 @@ int main(int argc, char* argv[]) {
     
     delete_key(3);
     printf("exits: %i\n", exist(9));
+    printf("exits: %i\n", exist(3));
     return 0;
 }

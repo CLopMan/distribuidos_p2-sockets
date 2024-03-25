@@ -119,33 +119,33 @@ int set_value(int key, char* value1, int N_value2, double* V_value2) {
 }
 
 int get_value(int key, char* value1, int* N_value2, double* V_value2) {
-    return 1;
-    /*peticion p;
-    respuesta r;
+    int sd = get_client_socket();
+    if (-1 == sd) return -1;
 
-    char queue_name[CHAR_SIZE];
-    sprintf(queue_name, "/Client_%i", getpid());
+    char op[] = "2";
+    sendMessage(sd, op, 2);
+    
+    char strint[CHAR_SIZE];
+    sprintf(strint, "%i", key);
+    writeLine(sd, strint);
 
-    // rellenar petición
-    p.op = 2;
-    p.key = key;
+    // Leemos value1
+    readLine(sd, strint, CHAR_SIZE);
+    strcpy(value1, strint);
 
-    strcpy(p.value1, value1);
-    strcpy(p.q_client, queue_name);
+    // Leemos N_value2
+    readLine(sd, strint, CHAR_SIZE);
+    *N_value2 = atoi(strint);
 
-    if (-1 == hacer_peticion(queue_name, &p, &r)) {
-        return -1;
+    // Leemos value2
+    for (int i = 0; i < *N_value2; i++) {
+        readLine(sd, strint, CHAR_SIZE);
+        V_value2[i] = atof(strint);
     }
 
-    *N_value2 = r.N;
-    for (int i = 0; i < r.N; ++i) {
-        V_value2[i] = r.value2[i];
-    }
-
-    strcpy(value1, r.value1);
-
-
-    return r.success;*/
+    char success[32];
+    readLine(sd, success, 32);
+    return atoi(success);
 
 }
 
@@ -177,42 +177,36 @@ int modify_value(int key, char* value1, int N_value2, double* V_value2) {
 }
 
 int delete_key(int key) {
-    return 1;
-    /*
-    char queue_name[CHAR_SIZE];
-    sprintf(queue_name, "/Client_%i", getpid());
+    int sd = get_client_socket();
+    if (-1 == sd) return -1;
 
-    peticion p;
-    respuesta r;
+    char op[] = "4";
+    sendMessage(sd, op, 2);
+    
+    char strint[CHAR_SIZE];
+    sprintf(strint, "%i", key);
+    writeLine(sd, strint);
 
-    p.op = 4;
-    p.key = key;
-    strcpy(p.q_client, queue_name);
+    char success[32];
+    readLine(sd, success, 32);
 
-    if (-1 == hacer_peticion(queue_name, &p, &r)) {
-        perror("Error:");
-        return -1;
-    }
-
-    return r.success;*/
+    return atoi(success);
 }
 
 int exist(int key) {
-    return 1;
-    /*char queue_name[CHAR_SIZE];
-    sprintf(queue_name, "/Client_%i", getpid());
+    int sd = get_client_socket();
+    if (-1 == sd) return -1;
 
-    peticion p;
-    respuesta r;
+    char op[] = "5";
+    sendMessage(sd, op, 2);
+    
+    char strint[CHAR_SIZE];
+    sprintf(strint, "%i", key);
+    writeLine(sd, strint);
 
-    p.op = 5;
-    p.key = key;
-    strcpy(p.q_client, queue_name);
+    char success[32];
+    readLine(sd, success, 32);
 
-    if (-1 == hacer_peticion(queue_name, &p, &r)) {
-        return -1;
-    }
-
-    return r.success;*/
+    return atoi(success);
 
 }

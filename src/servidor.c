@@ -13,11 +13,11 @@
 pthread_mutex_t mutex;
 pthread_cond_t cond;
 int copiado = 0;
-int sd = -1000;
+int sd = 70000;
 void stop_server() {
     pthread_mutex_destroy(&mutex);
     printf("Cerrando servidor...\n");
-    if (sd != -1000)
+    if (sd != 70000)
         close(sd);
     exit(0);
 }
@@ -165,7 +165,7 @@ int tratar_peticion(void* sc) {
 int main(int argc, char* argv[]) {
 
     signal(SIGINT, stop_server);
-    int sd, sc;
+    int sc;
     if (argc != 2) {
         perror("Uso: ./servidor <puerto>");
         return -1;

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 #include <stdio.h>
 
 #define MAX_CHILDS 5
@@ -41,7 +42,7 @@ int test_two_writers() {
     }
     pid_t last = -1;
     for (int i = 0; i < 2; ++i) {
-       last = wait(NULL);
+        last = wait(NULL);
     }
     return last;
 
@@ -59,7 +60,7 @@ int test_two_creating_same_file() {
         printf("HIJO\n");
         execl("./custom_client", "0", "1", NULL);
     }
-    
+
     for (int i = 0; i < 2; ++i) {
         wait(NULL);
     }
@@ -73,7 +74,8 @@ int test_one_reading_one_writing(int wdelay) {
     pid1 = fork();
     if (pid1 != 0) {
         pid2 = fork();
-    } else {
+    }
+    else {
         sleep(wdelay);
         execl("./custom_client", "0", "3", NULL);
     }
@@ -84,7 +86,7 @@ int test_one_reading_one_writing(int wdelay) {
 
     pid_t last = -1;
     for (int i = 0; i < 2; ++i) {
-       last = wait(NULL);
+        last = wait(NULL);
     }
     return last;
 
@@ -97,13 +99,14 @@ int test_MAX_CHILDS_clients_writing() {
     while (i--) {
         if (0 == pid) {
             execl("./custom_client", "0", "3", NULL);
-        } else {
+        }
+        else {
             pid = fork();
         }
     }
     pid_t last = -1;
     for (int i = 0; i < MAX_CHILDS; ++i) {
-       last = wait(NULL);
+        last = wait(NULL);
     }
     return last;
 }
@@ -114,37 +117,47 @@ int test_MAX_CHILDS_wr() {
     pid_t pid = 1;
     while (i--) {
         if (0 == pid) {
-            if (i%2) {
+            if (i % 2) {
                 execl("./custom_client", "0", "2", NULL);
-            } else {
+            }
+            else {
                 execl("./custom_client", "0", "3", NULL);
             }
-        } else {
+        }
+        else {
             pid = fork();
         }
     }
     pid_t last = -1;
     for (int i = 0; i < MAX_CHILDS; ++i) {
-       last = wait(NULL);
+        last = wait(NULL);
     }
     return last;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
+    int pid = fork();
+    if (pid == 0) {
+        int fd = open("server_log.txt", O_WRONLY | O_CREAT, 0777);
+        dup2(fd, STDOUT_FILENO);
+        close(fd);
+        execl("./servidor", "dummy", "4500", NULL);
+    }
     test_one_client(); // comunicaicón correcta
     //setup: creating 0.tuple
     int zero_creat = fork();
-    if (zero_creat == 0 ) {
+    if (zero_creat == 0) {
         printf("SETUP\n");
         execl("./custom_client", "0", "1", NULL);
-    } else {
+    }
+    else {
         wait(NULL);
     }
     int i = 5;
     pid_t last = 0;
     while (i--) { // se observará la última modificación
         last = test_two_writers(); // en este podremos comprobar la concurrencia 
-                                //si se da el caso en el que ambos empiecen antes de que el primero termine
+        //si se da el caso en el que ambos empiecen antes de que el primero termine
     }
     printf("last_writer: Client_%d\n", last);
     char file[512];
@@ -156,14 +169,15 @@ int main(int argc, char *argv[]) {
 
     //setup: erasing every file
     int intit_creat = fork();
-    if (intit_creat == 0 ) {
+    if (intit_creat == 0) {
         printf("SETUP: test3\n");
         execl("./custom_client", "0", "0", NULL);
-    } else {
+    }
+    else {
         wait(NULL);
     }
     test_two_creating_same_file();
-    test_one_reading_one_writing(0); 
+    test_one_reading_one_writing(0);
     test_one_reading_one_writing(2);// forzar primero la lectura
     test_MAX_CHILDS_clients_writing();
     test_MAX_CHILDS_wr();

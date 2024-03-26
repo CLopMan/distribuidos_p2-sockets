@@ -43,8 +43,8 @@ testing: imp_clave.o tests/tests_imp.c tests/custom_client.c libclaves.so tests/
 	gcc $(FLAGS) $(LIB) -o custom_client tests/custom_client.c libclaves.so
 	gcc $(FLAGS) -o traductor tests/traductor.c
 	@bash tests/test_imp.sh
-	@./tests_concurrency
-
+	@env IP_TUPLAS=localhost PORT_TUPLAS=4500 ./tests_concurrency
+	@killall servidor
 clean:
 	rm *.o
 

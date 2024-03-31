@@ -41,7 +41,7 @@ int tratar_peticion(void* sc) {
     copiado = 1;
     pthread_cond_signal(&cond);
     pthread_mutex_unlock(&mutex);
-    printf("tratando peticion...\n");
+    printf("tratando peticion de %i...\n", local_sc);
     readLine(local_sc, buffer_local, sizeof(char) + 1);
     op = buffer_local[0] - '0';
     printf(">>> op: %i\n", op);

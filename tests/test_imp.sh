@@ -2,12 +2,12 @@
 
 for i in {0..5}
 do
-    echo -e "\033[0;33mRUNNING: test_imp $i\033[0m";
+    printf "\033[0;33mRUNNING: test_imp $i\033[0m\n";
     ./tests_imp $i
     exit_st=$?
     if [ $exit_st -eq 0 ]; then
-        echo -e "\033[0;32m[OK]\033[0m test_imp $i"
+        printf "\033[0;32m[OK]\033[0m test_imp $i\n"
     else 
-        echo -e "\033[0;31m[FAILED]\033[0m test_imp $i"
+        printf "\033[0;31m[FAILED]\033[0m test_imp $i\n"
     fi
 done

@@ -1,5 +1,6 @@
 \documentclass[]{article}
 \usepackage{graphicx}
+\usepackage[spanish]{babel}
 \usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=3cm, right=3cm]{geometry}
 \usepackage[hidelinks]{hyperref}
 \usepackage{listings}
@@ -159,9 +160,11 @@ gcc -L. -Wl,-rpath=. -lclaves -o cliente cliente.o
 
 \section{Descripción de pruebas}
 \label{sec:descripcion_de_pruebas}
-Para validar elcorrecto funcionamiento del sistema, hemos lanzado varios clientes en máquinas con sistemas operativos distintos utilizando la herramienta \textit{docker}.
+Para validar el correcto funcionamiento del sistema, hemos realizado dos bloques de pruebas. 
 
-[...]
+El primero, encargado de comprobar la implementación y concurrencia del sistema, reutiliza las pruebas desarrolladas para la primera parte. El resultado de estas pruebas es exitoso, tal y como esperábamos ya que no hemos modificado la implementación de los servicios.
+
+Para el segundo bloque, encargado de comprobar la comunicación y correcta serialización de los datos, hemos conectado dos máquinas distintas (una lanzando el servidor y otra varios clientes) en una misma red LAN. El restulado de estas pruebas también ha sido exitoso.
 
 \section{Conclusiones}
 \label{sec:conclusiones}
